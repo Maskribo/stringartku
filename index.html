@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>String Art Generator - Pro Dashboard</title>
+    <title>String Art Pro Dashboard</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         :root {
@@ -14,102 +14,123 @@
             --border: #334155;
         }
 
-        /* 1. Layout Anti-Scroll */
+        /* 1. Reset & Full Screen Lock */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
         body {
             background-color: var(--bg);
             color: var(--text);
-            font-family: 'Inter', system-ui, sans-serif;
-            margin: 0;
+            font-family: 'Inter', -apple-system, sans-serif;
             height: 100vh;
+            width: 100vw;
             display: flex;
-            overflow: hidden; /* Mengunci scroll */
+            overflow: hidden; /* Mencegah scroll seluruh halaman */
         }
 
         .dashboard {
             display: grid;
-            grid-template-columns: 1fr 360px;
+            grid-template-columns: 1fr 350px; /* Sidebar lebih ramping */
             width: 100%;
             height: 100%;
         }
 
-        /* Area Kiri: Canvas Viewport */
+        /* AREA KIRI: VIEWPORT CANVAS */
         .main-view {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 20px;
-            position: relative;
+            padding: 15px;
             background: radial-gradient(circle, #1e293b 0%, #0f172a 100%);
+            position: relative;
+            overflow: hidden;
         }
 
-        .canvas-wrapper {
-            position: relative;
-            height: 85%;
+        .canvas-container {
+            max-width: 95%;
+            max-height: 95%;
             aspect-ratio: 1/1;
+            background: #ffffff;
+            border-radius: 50%;
+            box-shadow: 0 0 40px rgba(0,0,0,0.7);
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 0 50px rgba(0,0,0,0.5);
-            border-radius: 50%;
-            cursor: move; /* Indikator bisa di-drag */
+            cursor: move;
+            border: 3px solid var(--accent);
+            overflow: hidden;
         }
 
         canvas {
+            width: 100%;
             height: 100%;
-            width: auto;
-            border-radius: 50%;
-            background: white;
+            object-fit: contain;
         }
 
-        /* Area Kanan: Sidebar Controls */
+        /* AREA KANAN: SIDEBAR CERDAS */
         .sidebar {
             background: var(--card);
             border-left: 1px solid var(--border);
-            padding: 20px;
+            padding: 18px;
             display: flex;
             flex-direction: column;
-            gap: 15px;
-            overflow-y: auto; /* Sidebar boleh scroll jika layar sangat kecil */
+            gap: 10px; /* Jarak antar elemen diperkecil */
+            height: 100%;
         }
 
-        h2 { color: var(--accent); margin: 0; font-size: 1.4rem; letter-spacing: -0.5px; }
-        .hint { font-size: 0.75rem; color: #94a3b8; margin-top: -10px; }
+        h2 { color: var(--accent); font-size: 1.3rem; margin-bottom: -5px; }
+        .hint { font-size: 0.75rem; color: #94a3b8; line-height: 1.2; }
 
-        .control-group { background: #0f172a; padding: 12px; border-radius: 10px; border: 1px solid var(--border); }
-        label { font-size: 0.8rem; color: #94a3b8; display: block; margin-bottom: 5px; }
-        .val { float: right; color: var(--accent); font-weight: bold; }
+        .group { 
+            background: #0f172a; 
+            padding: 10px; 
+            border-radius: 10px; 
+            border: 1px solid var(--border); 
+        }
 
-        input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer; }
+        label { font-size: 0.75rem; color: #94a3b8; display: block; margin-bottom: 4px; }
+        .val { float: right; color: var(--accent); font-weight: bold; font-size: 0.8rem; }
+
+        input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer; height: 15px; }
+        input[type="file"] { font-size: 0.7rem; width: 100%; color: #94a3b8; }
         
-        .btn-main {
+        .btn-primary {
             background: var(--accent);
-            color: #121212;
+            color: #0f172a;
             border: none;
-            padding: 14px;
+            padding: 12px;
             border-radius: 8px;
             font-weight: bold;
             cursor: pointer;
             transition: 0.2s;
-            font-size: 1rem;
+            font-size: 0.9rem;
+            margin-top: 5px;
         }
 
-        .btn-main:hover { transform: scale(1.02); }
-        .btn-main:disabled { background: #444; color: #888; cursor: not-allowed; }
+        .btn-primary:hover { transform: translateY(-1px); opacity: 0.9; }
+        .btn-primary:disabled { background: #444; color: #888; cursor: not-allowed; }
 
-        .export-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
-        .btn-sub { background: #334155; color: white; border: none; padding: 8px; border-radius: 5px; cursor: pointer; font-size: 0.75rem; }
+        /* Bagian Download (Fixed di Bawah) */
+        .export-section {
+            margin-top: auto; /* Memaksa bagian ini ke paling bawah */
+            border-top: 1px solid var(--border);
+            padding-top: 10px;
+        }
 
-        #status { font-size: 0.85rem; text-align: center; color: var(--accent); min-height: 20px; }
+        .export-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 8px; }
+        .btn-sec { background: #334155; color: white; border: none; padding: 8px; border-radius: 6px; cursor: pointer; font-size: 0.7rem; font-weight: bold; }
+        .btn-sec:hover { background: #475569; }
 
-        /* Grayscale Preview Overlay */
-        .preview-mode-text {
+        #status { text-align: center; color: var(--accent); font-size: 0.8rem; margin-top: 5px; min-height: 1.2em; }
+
+        .instr-tag {
             position: absolute;
-            top: 20px;
-            background: rgba(0,0,0,0.6);
-            padding: 5px 15px;
+            top: 15px;
+            background: rgba(0,0,0,0.5);
+            padding: 4px 12px;
             border-radius: 20px;
             font-size: 0.7rem;
+            color: #ccc;
             pointer-events: none;
         }
     </style>
@@ -118,45 +139,50 @@
 
 <div class="dashboard">
     <div class="main-view">
-        <div id="previewText" class="preview-mode-text">Mode: Geser foto untuk menyesuaikan posisi</div>
-        <div class="canvas-wrapper" id="canvasWrapper">
+        <div class="instr-tag">Navigasi: Geser foto di dalam lingkaran</div>
+        <div class="canvas-container" id="canvasWrapper">
             <canvas id="artCanvas" width="1000" height="1000"></canvas>
         </div>
     </div>
 
     <div class="sidebar">
         <h2>String Art Gen</h2>
-        <p class="hint">Geser foto di lingkaran untuk mengatur crop.</p>
-        
-        <div class="control-group">
-            <label>1. Masukkan Foto</label>
-            <input type="file" id="imgInput" accept="image/*" style="font-size: 0.8rem; color: #94a3b8;">
+        <p class="hint">Atur paku dan tarik benang secara digital.</p>
+
+        <div class="group">
+            <label>1. Pilih Foto</label>
+            <input type="file" id="imgInput" accept="image/*">
         </div>
 
-        <div class="control-group">
-            <label>Jumlah Paku (Nails) <span class="val" id="nVal">250</span></label>
+        <div class="group">
+            <label>Zoom Foto <span class="val" id="zVal">1.0x</span></label>
+            <input type="range" id="imgZoom" min="0.5" max="3" value="1" step="0.1">
+        </div>
+
+        <div class="group">
+            <label>Jumlah Paku <span class="val" id="nVal">250</span></label>
             <input type="range" id="nails" min="100" max="400" value="250">
         </div>
 
-        <div class="control-group">
-            <label>Jumlah Garis (Lines) <span class="val" id="lVal">3000</span></label>
+        <div class="group">
+            <label>Jumlah Garis <span class="val" id="lVal">3000</span></label>
             <input type="range" id="lines" min="500" max="6000" value="3000" step="100">
         </div>
 
-        <div class="control-group">
-            <label>Ketebalan Benang (Opacity) <span class="val" id="oVal">0.15</span></label>
-            <input type="range" id="opacity" min="0.05" max="0.4" value="0.15" step="0.01">
+        <div class="group">
+            <label>Ketebalan Benang <span class="val" id="oVal">0.2</span></label>
+            <input type="range" id="opacity" min="0.05" max="0.5" value="0.2" step="0.01">
         </div>
 
-        <button id="btnStart" class="btn-main" disabled>Generate String Art</button>
-        <div id="status">Tunggu Gambar...</div>
+        <button id="btnStart" class="btn-primary" disabled>Mulai Generate</button>
+        <div id="status">Upload gambar...</div>
 
-        <div style="flex-grow: 1;"></div> <div class="control-group">
-            <label>Ekspor Hasil Akhir:</label>
+        <div class="export-section">
+            <label>Ekspor Hasil (Hitam Putih):</label>
             <div class="export-grid">
-                <button id="expPng" class="btn-sub">PNG HD</button>
-                <button id="expPdf" class="btn-sub">PDF</button>
-                <button id="expCsv" class="btn-sub">CSV</button>
+                <button id="expPng" class="btn-sec">PNG HD</button>
+                <button id="expPdf" class="btn-sec">PDF</button>
+                <button id="expCsv" class="btn-sec">Urutan</button>
             </div>
         </div>
     </div>
@@ -167,180 +193,126 @@
     const ctx = canvas.getContext('2d', {willReadFrequently: true});
     const status = document.getElementById('status');
     const SIZE = 1000;
-    const RADIUS = SIZE/2 - 10;
+    const RADIUS = SIZE/2 - 8;
 
     let imgObj = null;
     let isWorking = false;
-    let pinPos = [];
     let pinSeq = [];
+    let pinPos = [];
 
-    // Variabel untuk Manual Crop/Pan
-    let offsetX = 0;
-    let offsetY = 0;
-    let imgScale = 1;
-    let isDragging = false;
-    let startX, startY;
+    // Variabel Geser & Zoom
+    let offsetX = 0, offsetY = 0;
+    let scaleBase = 1, userZoom = 1;
+    let isDragging = false, startX, startY;
 
-    // UI Updates
-    document.getElementById('nails').oninput = e => document.getElementById('nVal').innerText = e.target.value;
-    document.getElementById('lines').oninput = e => document.getElementById('lVal').innerText = e.target.value;
-    document.getElementById('opacity').oninput = e => document.getElementById('oVal').innerText = e.target.value;
+    const updateVal = (id, val) => document.getElementById(id).innerText = val;
+    
+    document.getElementById('imgZoom').oninput = e => { 
+        userZoom = parseFloat(e.target.value); 
+        updateVal('zVal', userZoom+'x'); 
+        renderPreview(); 
+    };
+    document.getElementById('nails').oninput = e => updateVal('nVal', e.target.value);
+    document.getElementById('lines').oninput = e => updateVal('lVal', e.target.value);
+    document.getElementById('opacity').oninput = e => updateVal('oVal', e.target.value);
 
-    // Load Gambar
     document.getElementById('imgInput').onchange = e => {
-        const file = e.target.files[0];
-        if(!file) return;
         const reader = new FileReader();
         reader.onload = event => {
             imgObj = new Image();
             imgObj.onload = () => {
-                // Reset posisi saat gambar baru masuk
-                imgScale = Math.max(SIZE/imgObj.width, SIZE/imgObj.height);
-                offsetX = (SIZE - imgObj.width * imgScale) / 2;
-                offsetY = (SIZE - imgObj.height * imgScale) / 2;
+                scaleBase = Math.max(SIZE/imgObj.width, SIZE/imgObj.height);
+                offsetX = (SIZE - imgObj.width * scaleBase) / 2;
+                offsetY = (SIZE - imgObj.height * scaleBase) / 2;
                 renderPreview();
                 document.getElementById('btnStart').disabled = false;
-                status.innerText = "Siap! Geser foto jika perlu.";
+                status.innerText = "Siap. Silakan geser foto.";
             };
             imgObj.src = event.target.result;
         };
-        reader.readAsDataURL(file);
+        reader.readAsDataURL(e.target.files[0]);
     };
 
-    // Fungsi Render Preview (Grayscale + Manual Pan)
     function renderPreview() {
         if(!imgObj) return;
-        ctx.clearRect(0, 0, SIZE, SIZE);
-        ctx.fillStyle = "white";
-        ctx.fillRect(0,0,SIZE,SIZE);
-
+        ctx.clearRect(0,0,SIZE,SIZE);
+        ctx.fillStyle = "white"; ctx.fillRect(0,0,SIZE,SIZE);
         ctx.save();
-        // 2. Grayscale Efek agar hasil tampak nyata
-        ctx.filter = 'grayscale(100%) contrast(120%)';
-        ctx.drawImage(imgObj, offsetX, offsetY, imgObj.width * imgScale, imgObj.height * imgScale);
+        ctx.filter = 'grayscale(100%) contrast(115%) brightness(105%)';
+        ctx.drawImage(imgObj, offsetX, offsetY, imgObj.width * scaleBase * userZoom, imgObj.height * scaleBase * userZoom);
         ctx.restore();
-
-        // Overlay lingkaran putih di luar area kerja
         ctx.globalCompositeOperation = 'destination-in';
-        ctx.beginPath();
-        ctx.arc(SIZE/2, SIZE/2, RADIUS, 0, Math.PI*2);
-        ctx.fill();
+        ctx.beginPath(); ctx.arc(SIZE/2, SIZE/2, RADIUS, 0, Math.PI*2); ctx.fill();
         ctx.globalCompositeOperation = 'source-over';
-        
-        // Kasih transparansi sedikit agar user tahu itu mode preview
         ctx.fillStyle = "rgba(255,255,255,0.4)";
-        ctx.beginPath();
-        ctx.arc(SIZE/2, SIZE/2, RADIUS, 0, Math.PI*2);
-        ctx.fill();
+        ctx.beginPath(); ctx.arc(SIZE/2, SIZE/2, RADIUS, 0, Math.PI*2); ctx.fill();
     }
 
-    // 3. Logika Geser (Drag to Position)
     const wrapper = document.getElementById('canvasWrapper');
-    wrapper.onmousedown = e => {
-        if(isWorking) return;
-        isDragging = true;
-        startX = e.clientX - offsetX;
-        startY = e.clientY - offsetY;
-    };
-
+    wrapper.onmousedown = e => { if(isWorking) return; isDragging = true; startX = e.clientX - offsetX; startY = e.clientY - offsetY; };
     window.onmousemove = e => {
         if(!isDragging || isWorking) return;
-        offsetX = e.clientX - startX;
-        offsetY = e.clientY - startY;
+        offsetX = e.clientX - startX; offsetY = e.clientY - startY;
         renderPreview();
     };
-
     window.onmouseup = () => isDragging = false;
 
-    // Algoritma Core
     async function startProcess() {
         if(!imgObj || isWorking) return;
         isWorking = true;
         document.getElementById('btnStart').disabled = true;
-        document.getElementById('previewText').style.display = 'none';
 
         const nNails = parseInt(document.getElementById('nails').value);
         const nLines = parseInt(document.getElementById('lines').value);
         const alpha = parseFloat(document.getElementById('opacity').value);
 
-        // Ambil data piksel dari posisi yang sudah di-geser
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = SIZE; tempCanvas.height = SIZE;
-        const tCtx = tempCanvas.getContext('2d');
-        tCtx.fillStyle = "white";
-        tCtx.fillRect(0,0,SIZE,SIZE);
-        tCtx.filter = 'grayscale(100%) contrast(110%)';
-        tCtx.drawImage(imgObj, offsetX, offsetY, imgObj.width * imgScale, imgObj.height * imgScale);
+        const tC = document.createElement('canvas'); tC.width = SIZE; tC.height = SIZE;
+        const tCtx = tC.getContext('2d');
+        tCtx.fillStyle = "white"; tCtx.fillRect(0,0,SIZE,SIZE);
+        tCtx.filter = 'grayscale(100%) contrast(120%)';
+        tCtx.drawImage(imgObj, offsetX, offsetY, imgObj.width * scaleBase * userZoom, imgObj.height * scaleBase * userZoom);
         
-        const imgData = tCtx.getImageData(0,0,SIZE,SIZE).data;
+        const data = tCtx.getImageData(0,0,SIZE,SIZE).data;
         let pixels = new Float32Array(SIZE*SIZE);
-        for(let i=0; i<imgData.length; i+=4) {
-            pixels[i/4] = 255 - (imgData[i]*0.299 + imgData[i+1]*0.587 + imgData[i+2]*0.114);
-        }
+        for(let i=0; i<data.length; i+=4) pixels[i/4] = 255 - (data[i]*0.299 + data[i+1]*0.587 + data[i+2]*0.114);
 
-        // Posisi Paku
         pinPos = [];
         for(let i=0; i<nNails; i++) {
             const ang = (i*2*Math.PI)/nNails;
-            pinPos.push({
-                x: Math.round(SIZE/2 + RADIUS * Math.cos(ang)),
-                y: Math.round(SIZE/2 + RADIUS * Math.sin(ang))
-            });
+            pinPos.push({ x: Math.round(SIZE/2 + RADIUS * Math.cos(ang)), y: Math.round(SIZE/2 + RADIUS * Math.sin(ang)) });
         }
 
-        ctx.fillStyle = "white";
-        ctx.fillRect(0,0,SIZE,SIZE);
-        ctx.strokeStyle = `rgba(0,0,0,${alpha})`;
-        ctx.lineWidth = 1;
+        ctx.fillStyle = "white"; ctx.fillRect(0,0,SIZE,SIZE);
+        ctx.strokeStyle = `rgba(0,0,0,${alpha})`; ctx.lineWidth = 1;
 
-        let cur = 0;
-        pinSeq = [0];
-
+        let cur = 0; pinSeq = [0];
         for(let l=0; l<nLines; l++) {
-            let bestNail = -1;
-            let maxScore = -1;
-
+            let best = -1, maxS = -1;
             for(let i=0; i<nNails; i++) {
                 if(Math.abs(i - cur) < 15) continue;
-                const score = getScore(pixels, pinPos[cur], pinPos[i]);
-                if(score > maxScore) { maxScore = score; bestNail = i; }
+                const score = calculateScore(pixels, pinPos[cur], pinPos[i]);
+                if(score > maxS) { maxS = score; best = i; }
             }
-
-            if(bestNail == -1) break;
-
-            subtractLine(pixels, pinPos[cur], pinPos[bestNail]);
-            ctx.beginPath();
-            ctx.moveTo(pinPos[cur].x, pinPos[cur].y);
-            ctx.lineTo(pinPos[bestNail].x, pinPos[bestNail].y);
-            ctx.stroke();
-
-            cur = bestNail;
-            pinSeq.push(cur);
-
-            if(l % 60 === 0) {
-                status.innerText = `Drawing: ${Math.round((l/nLines)*100)}%`;
-                await new Promise(r => setTimeout(r, 0));
-            }
+            if(best === -1) break;
+            drawAndSubtract(pixels, pinPos[cur], pinPos[best]);
+            ctx.beginPath(); ctx.moveTo(pinPos[cur].x, pinPos[cur].y); ctx.lineTo(pinPos[best].x, pinPos[best].y); ctx.stroke();
+            cur = best; pinSeq.push(cur);
+            if(l % 70 === 0) { status.innerText = `Proses: ${Math.round((l/nLines)*100)}%`; await new Promise(r => setTimeout(r, 0)); }
         }
-
         status.innerText = "Selesai!";
-        isWorking = false;
-        document.getElementById('btnStart').disabled = false;
+        isWorking = false; document.getElementById('btnStart').disabled = false;
     }
 
-    // Helper Math
-    function getScore(pixels, p1, p2) {
+    function calculateScore(pixels, p1, p2) {
         let s = 0, c = 0;
         const pts = bresenham(p1.x, p1.y, p2.x, p2.y);
         for(let p of pts) { s += pixels[p]; c++; }
         return s/c;
     }
-
-    function subtractLine(pixels, p1, p2) {
+    function drawAndSubtract(pixels, p1, p2) {
         const pts = bresenham(p1.x, p1.y, p2.x, p2.y);
-        for(let p of pts) pixels[p] = Math.max(0, pixels[p] - 100);
+        for(let p of pts) pixels[p] = Math.max(0, pixels[p] - 95);
     }
-
     function bresenham(x0, y0, x1, y1) {
         let pts = [];
         let dx = Math.abs(x1-x0), sx = x0<x1 ? 1 : -1;
@@ -357,33 +329,25 @@
     }
 
     document.getElementById('btnStart').onclick = startProcess;
-
-    // Exports
     document.getElementById('expPng').onclick = () => {
         const link = document.createElement('a');
-        link.download = 'string-art-result.png';
-        link.href = canvas.toDataURL('image/png', 1.0);
+        link.download = 'stringart-result.png';
+        link.href = canvas.toDataURL('image/png');
         link.click();
     };
-
     document.getElementById('expCsv').onclick = () => {
-        let csv = "Step,Pin_Index\n" + pinSeq.map((p,i)=>`${i},${p}`).join("\n");
+        let csv = "Urutan,Paku_ID\n" + pinSeq.map((p,i)=>`${i+1},${p}`).join("\n");
         const blob = new Blob([csv], {type:'text/csv'});
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url; a.download = 'thread_sequence.csv'; a.click();
+        a.href = url; a.download = 'urutan-benang.csv'; a.click();
     };
-
     document.getElementById('expPdf').onclick = () => {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
-        doc.setFontSize(16);
-        doc.text("String Art Manual Guide", 10, 20);
-        doc.setFontSize(10);
-        doc.text(`Total Lines: ${pinSeq.length}`, 10, 30);
-        const imgData = canvas.toDataURL('image/jpeg', 0.9);
-        doc.addImage(imgData, 'JPEG', 15, 40, 180, 180);
-        doc.save('string-art-guide.pdf');
+        doc.text("String Art Guide", 15, 15);
+        doc.addImage(canvas.toDataURL('image/jpeg', 1.0), 'JPEG', 15, 25, 180, 180);
+        doc.save('guide.pdf');
     };
 </script>
 </body>

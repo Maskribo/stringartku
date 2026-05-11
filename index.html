@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>String Art Generator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header Section -->
+        <header class="header">
+            <h1>🎨 String Art Generator</h1>
+            <p>Ubah foto menjadi karya seni benang yang menakjubkan</p>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Left Panel: Controls -->
+            <aside class="control-panel">
+                <section class="control-section">
+                    <h2>1. Upload Gambar</h2>
+                    <label class="file-input-wrapper">
+                        <input 
+                            type="file" 
+                            id="imageInput" 
+                            accept="image/jpeg,image/png"
+                            class="file-input"
+                        >
+                        <span class="file-label">Pilih Gambar (JPG/PNG)</span>
+                    </label>
+                    <div id="imagePreview" class="preview-placeholder">
+                        <p>Preview gambar akan tampil di sini</p>
+                    </div>
+                </section>
+
+                <section class="control-section">
+                    <h2>2. Parameter Kontrol</h2>
+                    
+                    <div class="control-group">
+                        <label for="nailsSlider">
+                            Jumlah Paku (Nails):
+                            <span id="nailsValue" class="value-display">100</span>
+                        </label>
+                        <input 
+                            type="range" 
+                            id="nailsSlider" 
+                            min="8" 
+                            max="500" 
+                            value="100"
+                            class="slider"
+                        >
+                        <div class="range-labels">
+                            <span>8</span>
+                            <span>500</span>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="linesSlider">
+                            Jumlah Tarikan Benang (Lines):
+                            <span id="linesValue" class="value-display">1500</span>
+                        </label>
+                        <input 
+                            type="range" 
+                            id="linesSlider" 
+                            min="100" 
+                            max="5000" 
+                            value="1500"
+                            class="slider"
+                        >
+                        <div class="range-labels">
+                            <span>100</span>
+                            <span>5000</span>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="opacitySlider">
+                            Transparansi Benang (Opacity):
+                            <span id="opacityValue" class="value-display">0.4</span>
+                        </label>
+                        <input 
+                            type="range" 
+                            id="opacitySlider" 
+                            min="0" 
+                            max="1" 
+                            step="0.1"
+                            value="0.4"
+                            class="slider"
+                        >
+                        <div class="range-labels">
+                            <span>0</span>
+                            <span>1</span>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="lineWidthSlider">
+                            Ketebalan Benang (Width):
+                            <span id="lineWidthValue" class="value-display">1.5</span>
+                        </label>
+                        <input 
+                            type="range" 
+                            id="lineWidthSlider" 
+                            min="0.5" 
+                            max="5" 
+                            step="0.5"
+                            value="1.5"
+                            class="slider"
+                        >
+                        <div class="range-labels">
+                            <span>0.5</span>
+                            <span>5</span>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="control-section">
+                    <h2>3. Kontrol Pemrosesan</h2>
+                    <button id="generateBtn" class="btn btn-primary">
+                        Generate String Art
+                    </button>
+                    <button id="resetBtn" class="btn btn-secondary">
+                        Reset
+                    </button>
+                </section>
+
+                <section class="control-section">
+                    <h2>4. Ekspor Hasil</h2>
+                    <button id="downloadPngBtn" class="btn btn-export">
+                        📥 Download PNG (HD)
+                    </button>
+                    <button id="downloadPdfBtn" class="btn btn-export">
+                        📥 Download PDF
+                    </button>
+                    <button id="downloadCsvBtn" class="btn btn-export">
+                        📥 Download CSV
+                    </button>
+                </section>
+
+                <section class="control-section info-section">
+                    <h3>ℹ️ Informasi</h3>
+                    <p id="statusText" class="status-text">Siap untuk mengunggah gambar</p>
+                    <div id="statsContainer" class="stats-container" style="display: none;">
+                        <p><strong>Garis dibuat:</strong> <span id="statsLines">0</span></p>
+                        <p><strong>Progress:</strong> <span id="statsProgress">0</span>%</p>
+                        <p><strong>Waktu:</strong> <span id="statsTime">0</span>s</p>
+                    </div>
+                </section>
+            </aside>
+
+            <!-- Right Panel: Canvas -->
+            <section class="canvas-section">
+                <div class="canvas-wrapper">
+                    <canvas id="mainCanvas" class="main-canvas"></canvas>
+                    <div class="canvas-overlay" id="canvasOverlay">
+                        <p>Gambar akan ditampilkan di sini</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>String Art Generator © 2026 | Powered by Vanilla JavaScript</p>
+        </footer>
+    </div>
+
+    <!-- External Libraries (untuk PDF export) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <!-- Main JavaScript -->
+    <script src="script.js"></script>
+</body>
+</html>

@@ -3,59 +3,388 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>String Art Generator</title>
-    <!-- Library jsPDF untuk ekspor PDF -->
+    <title>String Art Generator - Pro Dashboard</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <!-- Hubungkan ke file CSS -->
-    <link rel="stylesheet" href="style.css">
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --accent: #a78bfa;
+            --text: #f1f5f9;
+            --border: #334155;
+        }
+
+        /* 1. Layout Anti-Scroll */
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', system-ui, sans-serif;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            overflow: hidden; /* Mengunci scroll */
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 360px;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Area Kiri: Canvas Viewport */
+        .main-view {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+            background: radial-gradient(circle, #1e293b 0%, #0f172a 100%);
+        }
+
+        .canvas-wrapper {
+            position: relative;
+            height: 85%;
+            aspect-ratio: 1/1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+            border-radius: 50%;
+            cursor: move; /* Indikator bisa di-drag */
+        }
+
+        canvas {
+            height: 100%;
+            width: auto;
+            border-radius: 50%;
+            background: white;
+        }
+
+        /* Area Kanan: Sidebar Controls */
+        .sidebar {
+            background: var(--card);
+            border-left: 1px solid var(--border);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            overflow-y: auto; /* Sidebar boleh scroll jika layar sangat kecil */
+        }
+
+        h2 { color: var(--accent); margin: 0; font-size: 1.4rem; letter-spacing: -0.5px; }
+        .hint { font-size: 0.75rem; color: #94a3b8; margin-top: -10px; }
+
+        .control-group { background: #0f172a; padding: 12px; border-radius: 10px; border: 1px solid var(--border); }
+        label { font-size: 0.8rem; color: #94a3b8; display: block; margin-bottom: 5px; }
+        .val { float: right; color: var(--accent); font-weight: bold; }
+
+        input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer; }
+        
+        .btn-main {
+            background: var(--accent);
+            color: #121212;
+            border: none;
+            padding: 14px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 1rem;
+        }
+
+        .btn-main:hover { transform: scale(1.02); }
+        .btn-main:disabled { background: #444; color: #888; cursor: not-allowed; }
+
+        .export-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+        .btn-sub { background: #334155; color: white; border: none; padding: 8px; border-radius: 5px; cursor: pointer; font-size: 0.75rem; }
+
+        #status { font-size: 0.85rem; text-align: center; color: var(--accent); min-height: 20px; }
+
+        /* Grayscale Preview Overlay */
+        .preview-mode-text {
+            position: absolute;
+            top: 20px;
+            background: rgba(0,0,0,0.6);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            pointer-events: none;
+        }
+    </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="canvas-container">
-        <!-- Resolusi internal canvas HD -->
-        <canvas id="artCanvas" width="1000" height="1000"></canvas>
+<div class="dashboard">
+    <div class="main-view">
+        <div id="previewText" class="preview-mode-text">Mode: Geser foto untuk menyesuaikan posisi</div>
+        <div class="canvas-wrapper" id="canvasWrapper">
+            <canvas id="artCanvas" width="1000" height="1000"></canvas>
+        </div>
     </div>
 
-    <div class="controls">
-        <h2>String Art Generator</h2>
+    <div class="sidebar">
+        <h2>String Art Gen</h2>
+        <p class="hint">Geser foto di lingkaran untuk mengatur crop.</p>
         
         <div class="control-group">
-            <label>Upload Gambar (JPG/PNG)</label>
-            <input type="file" id="imageInput" accept="image/png, image/jpeg">
+            <label>1. Masukkan Foto</label>
+            <input type="file" id="imgInput" accept="image/*" style="font-size: 0.8rem; color: #94a3b8;">
         </div>
 
         <div class="control-group">
-            <label>Jumlah Paku (Nails) <span class="val-display" id="nailsVal">250</span></label>
-            <input type="range" id="nailsCount" min="100" max="400" value="250" step="10">
+            <label>Jumlah Paku (Nails) <span class="val" id="nVal">250</span></label>
+            <input type="range" id="nails" min="100" max="400" value="250">
         </div>
 
         <div class="control-group">
-            <label>Jumlah Garis (Lines) <span class="val-display" id="linesVal">3000</span></label>
-            <input type="range" id="linesCount" min="500" max="6000" value="3000" step="100">
+            <label>Jumlah Garis (Lines) <span class="val" id="lVal">3000</span></label>
+            <input type="range" id="lines" min="500" max="6000" value="3000" step="100">
         </div>
 
         <div class="control-group">
-            <label>Transparansi Benang <span class="val-display" id="opacityVal">0.1</span></label>
-            <input type="range" id="lineOpacity" min="0.02" max="0.3" value="0.1" step="0.01">
+            <label>Ketebalan Benang (Opacity) <span class="val" id="oVal">0.15</span></label>
+            <input type="range" id="opacity" min="0.05" max="0.4" value="0.15" step="0.01">
         </div>
 
-        <button id="btnGenerate" disabled>Mulai Proses</button>
+        <button id="btnStart" class="btn-main" disabled>Generate String Art</button>
+        <div id="status">Tunggu Gambar...</div>
 
-        <div class="status" id="statusText">Pilih gambar untuk memulai...</div>
-
-        <hr style="border-color: var(--border); margin: 10px 0;">
-        
-        <label>Ekspor Hasil:</label>
-        <div class="export-group">
-            <button id="btnPng" disabled>PNG</button>
-            <button id="btnPdf" disabled>PDF</button>
-            <button id="btnCsv" disabled>CSV</button>
+        <div style="flex-grow: 1;"></div> <div class="control-group">
+            <label>Ekspor Hasil Akhir:</label>
+            <div class="export-grid">
+                <button id="expPng" class="btn-sub">PNG HD</button>
+                <button id="expPdf" class="btn-sub">PDF</button>
+                <button id="expCsv" class="btn-sub">CSV</button>
+            </div>
         </div>
     </div>
 </div>
 
-<!-- Hubungkan ke file JavaScript -->
-<script src="script.js"></script>
+<script>
+    const canvas = document.getElementById('artCanvas');
+    const ctx = canvas.getContext('2d', {willReadFrequently: true});
+    const status = document.getElementById('status');
+    const SIZE = 1000;
+    const RADIUS = SIZE/2 - 10;
+
+    let imgObj = null;
+    let isWorking = false;
+    let pinPos = [];
+    let pinSeq = [];
+
+    // Variabel untuk Manual Crop/Pan
+    let offsetX = 0;
+    let offsetY = 0;
+    let imgScale = 1;
+    let isDragging = false;
+    let startX, startY;
+
+    // UI Updates
+    document.getElementById('nails').oninput = e => document.getElementById('nVal').innerText = e.target.value;
+    document.getElementById('lines').oninput = e => document.getElementById('lVal').innerText = e.target.value;
+    document.getElementById('opacity').oninput = e => document.getElementById('oVal').innerText = e.target.value;
+
+    // Load Gambar
+    document.getElementById('imgInput').onchange = e => {
+        const file = e.target.files[0];
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = event => {
+            imgObj = new Image();
+            imgObj.onload = () => {
+                // Reset posisi saat gambar baru masuk
+                imgScale = Math.max(SIZE/imgObj.width, SIZE/imgObj.height);
+                offsetX = (SIZE - imgObj.width * imgScale) / 2;
+                offsetY = (SIZE - imgObj.height * imgScale) / 2;
+                renderPreview();
+                document.getElementById('btnStart').disabled = false;
+                status.innerText = "Siap! Geser foto jika perlu.";
+            };
+            imgObj.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+    };
+
+    // Fungsi Render Preview (Grayscale + Manual Pan)
+    function renderPreview() {
+        if(!imgObj) return;
+        ctx.clearRect(0, 0, SIZE, SIZE);
+        ctx.fillStyle = "white";
+        ctx.fillRect(0,0,SIZE,SIZE);
+
+        ctx.save();
+        // 2. Grayscale Efek agar hasil tampak nyata
+        ctx.filter = 'grayscale(100%) contrast(120%)';
+        ctx.drawImage(imgObj, offsetX, offsetY, imgObj.width * imgScale, imgObj.height * imgScale);
+        ctx.restore();
+
+        // Overlay lingkaran putih di luar area kerja
+        ctx.globalCompositeOperation = 'destination-in';
+        ctx.beginPath();
+        ctx.arc(SIZE/2, SIZE/2, RADIUS, 0, Math.PI*2);
+        ctx.fill();
+        ctx.globalCompositeOperation = 'source-over';
+        
+        // Kasih transparansi sedikit agar user tahu itu mode preview
+        ctx.fillStyle = "rgba(255,255,255,0.4)";
+        ctx.beginPath();
+        ctx.arc(SIZE/2, SIZE/2, RADIUS, 0, Math.PI*2);
+        ctx.fill();
+    }
+
+    // 3. Logika Geser (Drag to Position)
+    const wrapper = document.getElementById('canvasWrapper');
+    wrapper.onmousedown = e => {
+        if(isWorking) return;
+        isDragging = true;
+        startX = e.clientX - offsetX;
+        startY = e.clientY - offsetY;
+    };
+
+    window.onmousemove = e => {
+        if(!isDragging || isWorking) return;
+        offsetX = e.clientX - startX;
+        offsetY = e.clientY - startY;
+        renderPreview();
+    };
+
+    window.onmouseup = () => isDragging = false;
+
+    // Algoritma Core
+    async function startProcess() {
+        if(!imgObj || isWorking) return;
+        isWorking = true;
+        document.getElementById('btnStart').disabled = true;
+        document.getElementById('previewText').style.display = 'none';
+
+        const nNails = parseInt(document.getElementById('nails').value);
+        const nLines = parseInt(document.getElementById('lines').value);
+        const alpha = parseFloat(document.getElementById('opacity').value);
+
+        // Ambil data piksel dari posisi yang sudah di-geser
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = SIZE; tempCanvas.height = SIZE;
+        const tCtx = tempCanvas.getContext('2d');
+        tCtx.fillStyle = "white";
+        tCtx.fillRect(0,0,SIZE,SIZE);
+        tCtx.filter = 'grayscale(100%) contrast(110%)';
+        tCtx.drawImage(imgObj, offsetX, offsetY, imgObj.width * imgScale, imgObj.height * imgScale);
+        
+        const imgData = tCtx.getImageData(0,0,SIZE,SIZE).data;
+        let pixels = new Float32Array(SIZE*SIZE);
+        for(let i=0; i<imgData.length; i+=4) {
+            pixels[i/4] = 255 - (imgData[i]*0.299 + imgData[i+1]*0.587 + imgData[i+2]*0.114);
+        }
+
+        // Posisi Paku
+        pinPos = [];
+        for(let i=0; i<nNails; i++) {
+            const ang = (i*2*Math.PI)/nNails;
+            pinPos.push({
+                x: Math.round(SIZE/2 + RADIUS * Math.cos(ang)),
+                y: Math.round(SIZE/2 + RADIUS * Math.sin(ang))
+            });
+        }
+
+        ctx.fillStyle = "white";
+        ctx.fillRect(0,0,SIZE,SIZE);
+        ctx.strokeStyle = `rgba(0,0,0,${alpha})`;
+        ctx.lineWidth = 1;
+
+        let cur = 0;
+        pinSeq = [0];
+
+        for(let l=0; l<nLines; l++) {
+            let bestNail = -1;
+            let maxScore = -1;
+
+            for(let i=0; i<nNails; i++) {
+                if(Math.abs(i - cur) < 15) continue;
+                const score = getScore(pixels, pinPos[cur], pinPos[i]);
+                if(score > maxScore) { maxScore = score; bestNail = i; }
+            }
+
+            if(bestNail == -1) break;
+
+            subtractLine(pixels, pinPos[cur], pinPos[bestNail]);
+            ctx.beginPath();
+            ctx.moveTo(pinPos[cur].x, pinPos[cur].y);
+            ctx.lineTo(pinPos[bestNail].x, pinPos[bestNail].y);
+            ctx.stroke();
+
+            cur = bestNail;
+            pinSeq.push(cur);
+
+            if(l % 60 === 0) {
+                status.innerText = `Drawing: ${Math.round((l/nLines)*100)}%`;
+                await new Promise(r => setTimeout(r, 0));
+            }
+        }
+
+        status.innerText = "Selesai!";
+        isWorking = false;
+        document.getElementById('btnStart').disabled = false;
+    }
+
+    // Helper Math
+    function getScore(pixels, p1, p2) {
+        let s = 0, c = 0;
+        const pts = bresenham(p1.x, p1.y, p2.x, p2.y);
+        for(let p of pts) { s += pixels[p]; c++; }
+        return s/c;
+    }
+
+    function subtractLine(pixels, p1, p2) {
+        const pts = bresenham(p1.x, p1.y, p2.x, p2.y);
+        for(let p of pts) pixels[p] = Math.max(0, pixels[p] - 100);
+    }
+
+    function bresenham(x0, y0, x1, y1) {
+        let pts = [];
+        let dx = Math.abs(x1-x0), sx = x0<x1 ? 1 : -1;
+        let dy = -Math.abs(y1-y0), sy = y0<y1 ? 1 : -1;
+        let err = dx+dy, e2;
+        while(true) {
+            pts.push(y0*SIZE + x0);
+            if(x0===x1 && y0===y1) break;
+            e2 = 2*err;
+            if(e2>=dy) { err+=dy; x0+=sx; }
+            if(e2<=dx) { err+=dx; y0+=sy; }
+        }
+        return pts;
+    }
+
+    document.getElementById('btnStart').onclick = startProcess;
+
+    // Exports
+    document.getElementById('expPng').onclick = () => {
+        const link = document.createElement('a');
+        link.download = 'string-art-result.png';
+        link.href = canvas.toDataURL('image/png', 1.0);
+        link.click();
+    };
+
+    document.getElementById('expCsv').onclick = () => {
+        let csv = "Step,Pin_Index\n" + pinSeq.map((p,i)=>`${i},${p}`).join("\n");
+        const blob = new Blob([csv], {type:'text/csv'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'thread_sequence.csv'; a.click();
+    };
+
+    document.getElementById('expPdf').onclick = () => {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        doc.setFontSize(16);
+        doc.text("String Art Manual Guide", 10, 20);
+        doc.setFontSize(10);
+        doc.text(`Total Lines: ${pinSeq.length}`, 10, 30);
+        const imgData = canvas.toDataURL('image/jpeg', 0.9);
+        doc.addImage(imgData, 'JPEG', 15, 40, 180, 180);
+        doc.save('string-art-guide.pdf');
+    };
+</script>
 </body>
 </html>

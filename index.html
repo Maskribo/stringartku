@@ -4,173 +4,501 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>String Art Generator</title>
-    <link rel="stylesheet" href="style.css">
+    <!-- Library jsPDF untuk ekspor PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        /* CSS Modern dengan CSS Variables untuk Dark Mode */
+        :root {
+            --bg-color: #121212;
+            --panel-bg: #1e1e1e;
+            --text-main: #f5f5f5;
+            --text-muted: #aaaaaa;
+            --accent: #bb86fc;
+            --accent-hover: #9965f4;
+            --border: #333333;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 20px;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        /* Area Canvas */
+        .canvas-container {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Canvas menggunakan background putih agar benang hitam terlihat kontras */
+        canvas {
+            background-color: #ffffff;
+            max-width: 100%;
+            height: auto;
+            border-radius: 50%;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        /* Area Kontrol Panel */
+        .controls {
+            background-color: var(--panel-bg);
+            padding: 25px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            height: fit-content;
+        }
+
+        h2 { font-size: 1.5rem; margin-bottom: 5px; color: var(--accent); }
+        .control-group { display: flex; flex-direction: column; gap: 8px; }
+        
+        label { font-size: 0.9rem; font-weight: 600; }
+        .val-display { font-weight: normal; color: var(--accent); float: right; }
+
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+            accent-color: var(--accent);
+        }
+
+        input[type="file"] {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            file-selector-button: border: none;
+            cursor: pointer;
+        }
+        
+        input[type="file"]::file-selector-button {
+            background-color: #333;
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        input[type="file"]::file-selector-button:hover { background-color: #444; }
+
+        button {
+            background-color: var(--accent);
+            color: #000;
+            border: none;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        button:hover { background-color: var(--accent-hover); }
+        button:disabled { background-color: #555; color: #888; cursor: not-allowed; }
+
+        .export-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .export-group button {
+            background-color: #333;
+            color: #fff;
+            font-size: 0.85rem;
+        }
+        .export-group button:hover { background-color: #444; }
+
+        .status {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        /* Responsif */
+        @media (max-width: 850px) {
+            .container { grid-template-columns: 1fr; }
+            .canvas-container { min-height: 400px; }
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Header Section -->
-        <header class="header">
-            <h1>🎨 String Art Generator</h1>
-            <p>Ubah foto menjadi karya seni benang yang menakjubkan</p>
-        </header>
 
-        <!-- Main Content -->
-        <main class="main-content">
-            <!-- Left Panel: Controls -->
-            <aside class="control-panel">
-                <section class="control-section">
-                    <h2>1. Upload Gambar</h2>
-                    <label class="file-input-wrapper">
-                        <input 
-                            type="file" 
-                            id="imageInput" 
-                            accept="image/jpeg,image/png"
-                            class="file-input"
-                        >
-                        <span class="file-label">Pilih Gambar (JPG/PNG)</span>
-                    </label>
-                    <div id="imagePreview" class="preview-placeholder">
-                        <p>Preview gambar akan tampil di sini</p>
-                    </div>
-                </section>
-
-                <section class="control-section">
-                    <h2>2. Parameter Kontrol</h2>
-                    
-                    <div class="control-group">
-                        <label for="nailsSlider">
-                            Jumlah Paku (Nails):
-                            <span id="nailsValue" class="value-display">100</span>
-                        </label>
-                        <input 
-                            type="range" 
-                            id="nailsSlider" 
-                            min="8" 
-                            max="500" 
-                            value="100"
-                            class="slider"
-                        >
-                        <div class="range-labels">
-                            <span>8</span>
-                            <span>500</span>
-                        </div>
-                    </div>
-
-                    <div class="control-group">
-                        <label for="linesSlider">
-                            Jumlah Tarikan Benang (Lines):
-                            <span id="linesValue" class="value-display">1500</span>
-                        </label>
-                        <input 
-                            type="range" 
-                            id="linesSlider" 
-                            min="100" 
-                            max="5000" 
-                            value="1500"
-                            class="slider"
-                        >
-                        <div class="range-labels">
-                            <span>100</span>
-                            <span>5000</span>
-                        </div>
-                    </div>
-
-                    <div class="control-group">
-                        <label for="opacitySlider">
-                            Transparansi Benang (Opacity):
-                            <span id="opacityValue" class="value-display">0.4</span>
-                        </label>
-                        <input 
-                            type="range" 
-                            id="opacitySlider" 
-                            min="0" 
-                            max="1" 
-                            step="0.1"
-                            value="0.4"
-                            class="slider"
-                        >
-                        <div class="range-labels">
-                            <span>0</span>
-                            <span>1</span>
-                        </div>
-                    </div>
-
-                    <div class="control-group">
-                        <label for="lineWidthSlider">
-                            Ketebalan Benang (Width):
-                            <span id="lineWidthValue" class="value-display">1.5</span>
-                        </label>
-                        <input 
-                            type="range" 
-                            id="lineWidthSlider" 
-                            min="0.5" 
-                            max="5" 
-                            step="0.5"
-                            value="1.5"
-                            class="slider"
-                        >
-                        <div class="range-labels">
-                            <span>0.5</span>
-                            <span>5</span>
-                        </div>
-                    </div>
-                </section>
-
-                <section class="control-section">
-                    <h2>3. Kontrol Pemrosesan</h2>
-                    <button id="generateBtn" class="btn btn-primary">
-                        Generate String Art
-                    </button>
-                    <button id="resetBtn" class="btn btn-secondary">
-                        Reset
-                    </button>
-                </section>
-
-                <section class="control-section">
-                    <h2>4. Ekspor Hasil</h2>
-                    <button id="downloadPngBtn" class="btn btn-export">
-                        📥 Download PNG (HD)
-                    </button>
-                    <button id="downloadPdfBtn" class="btn btn-export">
-                        📥 Download PDF
-                    </button>
-                    <button id="downloadCsvBtn" class="btn btn-export">
-                        📥 Download CSV
-                    </button>
-                </section>
-
-                <section class="control-section info-section">
-                    <h3>ℹ️ Informasi</h3>
-                    <p id="statusText" class="status-text">Siap untuk mengunggah gambar</p>
-                    <div id="statsContainer" class="stats-container" style="display: none;">
-                        <p><strong>Garis dibuat:</strong> <span id="statsLines">0</span></p>
-                        <p><strong>Progress:</strong> <span id="statsProgress">0</span>%</p>
-                        <p><strong>Waktu:</strong> <span id="statsTime">0</span>s</p>
-                    </div>
-                </section>
-            </aside>
-
-            <!-- Right Panel: Canvas -->
-            <section class="canvas-section">
-                <div class="canvas-wrapper">
-                    <canvas id="mainCanvas" class="main-canvas"></canvas>
-                    <div class="canvas-overlay" id="canvasOverlay">
-                        <p>Gambar akan ditampilkan di sini</p>
-                    </div>
-                </div>
-            </section>
-        </main>
-
-        <!-- Footer -->
-        <footer class="footer">
-            <p>String Art Generator © 2026 | Powered by Vanilla JavaScript</p>
-        </footer>
+<div class="container">
+    <div class="canvas-container">
+        <!-- Resolusi internal canvas kita set ke 1000x1000 untuk hasil detail (HD) -->
+        <canvas id="artCanvas" width="1000" height="1000"></canvas>
     </div>
 
-    <!-- External Libraries (untuk PDF export) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <div class="controls">
+        <h2>String Art Generator</h2>
+        
+        <div class="control-group">
+            <label>Upload Gambar (JPG/PNG)</label>
+            <input type="file" id="imageInput" accept="image/png, image/jpeg">
+        </div>
+
+        <div class="control-group">
+            <label>Jumlah Paku (Nails) <span class="val-display" id="nailsVal">250</span></label>
+            <input type="range" id="nailsCount" min="100" max="400" value="250" step="10">
+        </div>
+
+        <div class="control-group">
+            <label>Jumlah Garis (Lines) <span class="val-display" id="linesVal">3000</span></label>
+            <input type="range" id="linesCount" min="500" max="6000" value="3000" step="100">
+        </div>
+
+        <div class="control-group">
+            <label>Transparansi Benang <span class="val-display" id="opacityVal">0.1</span></label>
+            <input type="range" id="lineOpacity" min="0.02" max="0.3" value="0.1" step="0.01">
+        </div>
+
+        <button id="btnGenerate" disabled>Mulai Proses</button>
+
+        <div class="status" id="statusText">Pilih gambar untuk memulai...</div>
+
+        <hr style="border-color: var(--border); margin: 10px 0;">
+        
+        <label>Ekspor Hasil:</label>
+        <div class="export-group">
+            <button id="btnPng" disabled>PNG</button>
+            <button id="btnPdf" disabled>PDF</button>
+            <button id="btnCsv" disabled>CSV</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Referensi Elemen DOM
+    const canvas = document.getElementById('artCanvas');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
     
-    <!-- Main JavaScript -->
-    <script src="script.js"></script>
+    const imageInput = document.getElementById('imageInput');
+    const nailsCount = document.getElementById('nailsCount');
+    const linesCount = document.getElementById('linesCount');
+    const lineOpacity = document.getElementById('lineOpacity');
+    
+    const btnGenerate = document.getElementById('btnGenerate');
+    const btnPng = document.getElementById('btnPng');
+    const btnPdf = document.getElementById('btnPdf');
+    const btnCsv = document.getElementById('btnCsv');
+    const statusText = document.getElementById('statusText');
+
+    // Update Text Slider
+    const updateSliderVal = (el, valEl) => document.getElementById(valEl).innerText = el.value;
+    nailsCount.addEventListener('input', () => updateSliderVal(nailsCount, 'nailsVal'));
+    linesCount.addEventListener('input', () => updateSliderVal(linesCount, 'linesVal'));
+    lineOpacity.addEventListener('input', () => updateSliderVal(lineOpacity, 'opacityVal'));
+
+    // Variabel Global Algoritma
+    let originalImage = null;
+    const SIZE = 1000;
+    const RADIUS = SIZE / 2 - 10; // Padding 10px
+    let nails = [];
+    let pinSequence = [];
+    let isGenerating = false;
+    let animationFrameId;
+
+    // 1. Upload dan Pemrosesan Gambar Awal
+    imageInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            const img = new Image();
+            img.onload = function() {
+                originalImage = img;
+                prepareImageCanvas(img);
+                btnGenerate.disabled = false;
+                statusText.innerText = "Gambar siap. Tekan 'Mulai Proses'.";
+            };
+            img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+
+    // 2. Potong Menjadi Lingkaran & Grayscale (Offscreen Processing)
+    let processedPixels = new Float32Array(SIZE * SIZE);
+
+    function prepareImageCanvas(img) {
+        // Bersihkan canvas
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, SIZE, SIZE);
+
+        // Cari rasio ukuran agar gambar menutupi lingkaran
+        const scale = Math.max(SIZE / img.width, SIZE / img.height);
+        const x = (SIZE / 2) - (img.width / 2) * scale;
+        const y = (SIZE / 2) - (img.height / 2) * scale;
+
+        // Gambar ke canvas
+        ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+
+        // Ambil data piksel
+        const imgData = ctx.getImageData(0, 0, SIZE, SIZE);
+        const data = imgData.data;
+
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, SIZE, SIZE); // Bersihkan lagi untuk latar putih
+
+        // Proses Grayscale & Circular Masking
+        for (let y = 0; y < SIZE; y++) {
+            for (let x = 0; x < SIZE; x++) {
+                const i = (y * SIZE + x) * 4;
+                const dx = x - SIZE / 2;
+                const dy = y - SIZE / 2;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance > RADIUS) {
+                    // Jika di luar lingkaran, anggap putih (tidak ada nilai kegelapan)
+                    processedPixels[y * SIZE + x] = 0;
+                } else {
+                    // Hitung nilai grayscale (luminance)
+                    const r = data[i];
+                    const g = data[i+1];
+                    const b = data[i+2];
+                    // Inversi: semakin gelap warna asli, semakin besar nilainya untuk algoritma
+                    const gray = 255 - (0.299 * r + 0.587 * g + 0.114 * b);
+                    processedPixels[y * SIZE + x] = gray;
+                }
+            }
+        }
+        
+        // Tampilkan preview samar di background
+        ctx.putImageData(imgData, 0, 0);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+        ctx.fillRect(0, 0, SIZE, SIZE);
+    }
+
+    // 3. Algoritma Bresenham untuk mendapatkan piksel di sepanjang garis antar dua paku
+    function getLinePixels(x0, y0, x1, y1) {
+        const pixels = [];
+        let dx = Math.abs(x1 - x0);
+        let dy = Math.abs(y1 - y0);
+        let sx = (x0 < x1) ? 1 : -1;
+        let sy = (y0 < y1) ? 1 : -1;
+        let err = dx - dy;
+
+        while(true) {
+            if (x0 >= 0 && x0 < SIZE && y0 >= 0 && y0 < SIZE) {
+                pixels.push(y0 * SIZE + x0);
+            }
+            if (x0 === x1 && y0 === y1) break;
+            let e2 = 2 * err;
+            if (e2 > -dy) { err -= dy; x0 += sx; }
+            if (e2 < dx) { err += dx; y0 += sy; }
+        }
+        return pixels;
+    }
+
+    // 4. Algoritma Utama (Greedy Algorithm) & Visualisasi
+    btnGenerate.addEventListener('click', () => {
+        if (!originalImage || isGenerating) return;
+        
+        isGenerating = true;
+        btnGenerate.disabled = true;
+        btnPng.disabled = true;
+        btnPdf.disabled = true;
+        btnCsv.disabled = true;
+        
+        // Reset Setup
+        prepareImageCanvas(originalImage); // Reset piksel
+        pinSequence = [];
+        const numNails = parseInt(nailsCount.value);
+        const maxLines = parseInt(linesCount.value);
+        const opacity = parseFloat(lineOpacity.value);
+        const lineWeight = 20; // Seberapa banyak "kegelapan" yang dikurangi per tarikan benang
+
+        // Hitung posisi paku
+        nails = [];
+        for (let i = 0; i < numNails; i++) {
+            const angle = (i * 2 * Math.PI) / numNails;
+            nails.push({
+                x: Math.round(SIZE / 2 + RADIUS * Math.cos(angle)),
+                y: Math.round(SIZE / 2 + RADIUS * Math.sin(angle))
+            });
+        }
+
+        let currentPin = 0;
+        pinSequence.push(currentPin);
+        let linesDrawn = 0;
+
+        ctx.strokeStyle = `rgba(0, 0, 0, ${opacity})`;
+        ctx.lineWidth = 1;
+
+        // Loop Animasi menggunakan requestAnimationFrame agar UI tidak freeze
+        function drawStep() {
+            // Gambar 15 garis per frame agar proses terlihat namun tetap cepat
+            const linesPerFrame = 15; 
+            for (let step = 0; step < linesPerFrame; step++) {
+                if (linesDrawn >= maxLines) break;
+
+                let bestPin = -1;
+                let maxDarkness = -1;
+                let bestPixels = [];
+
+                // Coba semua paku lain (kecuali tetangga terdekat agar garis tidak menyusuri tepi lingkaran)
+                for (let i = 0; i < numNails; i++) {
+                    // Hindari paku saat ini dan paku di sebelahnya
+                    if (Math.abs(i - currentPin) < 5 || Math.abs(i - currentPin) > numNails - 5) continue;
+
+                    const p1 = nails[currentPin];
+                    const p2 = nails[i];
+                    const linePixels = getLinePixels(p1.x, p1.y, p2.x, p2.y);
+                    
+                    let darknessSum = 0;
+                    for (let p = 0; p < linePixels.length; p++) {
+                        darknessSum += processedPixels[linePixels[p]];
+                    }
+                    
+                    // Rata-rata kegelapan garis
+                    const darknessScore = darknessSum / linePixels.length;
+
+                    if (darknessScore > maxDarkness) {
+                        maxDarkness = darknessScore;
+                        bestPin = i;
+                        bestPixels = linePixels;
+                    }
+                }
+
+                // Jika tidak ada garis yang cukup gelap, hentikan proses (opsional, di sini kita teruskan saja)
+                if (bestPin === -1) break;
+
+                // Kurangi "kegelapan" piksel di gambar agar algoritma tidak memilih garis yang sama berulang kali
+                for (let p = 0; p < bestPixels.length; p++) {
+                    processedPixels[bestPixels[p]] = Math.max(0, processedPixels[bestPixels[p]] - lineWeight);
+                }
+
+                // Visualisasikan garis pada canvas
+                ctx.beginPath();
+                ctx.moveTo(nails[currentPin].x, nails[currentPin].y);
+                ctx.lineTo(nails[bestPin].x, nails[bestPin].y);
+                ctx.stroke();
+
+                // Update status
+                currentPin = bestPin;
+                pinSequence.push(currentPin);
+                linesDrawn++;
+            }
+
+            statusText.innerText = `Menggambar: ${linesDrawn} / ${maxLines} garis`;
+
+            if (linesDrawn < maxLines) {
+                animationFrameId = requestAnimationFrame(drawStep);
+            } else {
+                finishGeneration();
+            }
+        }
+        
+        // Memulai Loop
+        drawStep();
+    });
+
+    function finishGeneration() {
+        isGenerating = false;
+        btnGenerate.disabled = false;
+        btnPng.disabled = false;
+        btnPdf.disabled = false;
+        btnCsv.disabled = false;
+        statusText.innerText = "Selesai! Anda dapat mengekspor hasilnya.";
+    }
+
+    // 5. Fitur Ekspor
+
+    // Ekspor PNG Resolusi HD
+    btnPng.addEventListener('click', () => {
+        const link = document.createElement('a');
+        link.download = 'string-art.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+    });
+
+    // Ekspor CSV (Urutan Tarikan Paku)
+    btnCsv.addEventListener('click', () => {
+        let csvContent = "data:text/csv;charset=utf-8,";
+        csvContent += "Sequence Number,Pin Index\n";
+        pinSequence.forEach((pin, index) => {
+            csvContent += `${index + 1},${pin}\n`;
+        });
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "string-art-sequence.csv");
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+    });
+
+    // Ekspor PDF (Vektor Anti Pecah menggunakan jsPDF)
+    btnPdf.addEventListener('click', () => {
+        statusText.innerText = "Sedang menyusun PDF Vector... Harap tunggu.";
+        
+        // Timeout kecil agar UI punya waktu untuk render teks status
+        setTimeout(() => {
+            const { jsPDF } = window.jspdf;
+            // Gunakan unit millimeter, ukuran kertas A4 (210 x 297 mm)
+            const doc = new jsPDF('p', 'mm', 'a4'); 
+            
+            const pdfSize = 190; // Ukuran area gambar 190x190mm
+            const margin = (210 - pdfSize) / 2;
+            
+            // Pindahkan koordinat (0,0) di tengah area PDF
+            const scale = pdfSize / SIZE;
+            
+            // Warna garis PDF (0.1 = cukup transparan jika tumpuk)
+            doc.setDrawColor(0, 0, 0); 
+            doc.setLineWidth(0.1);
+
+            // Karena jsPDF tidak memiliki blend mode sempurna seperti canvas untuk ribuan garis yang sangat tipis,
+            // kita akan menggambar semuanya secara berurutan. Hasil vektor akan tetap tajam saat di-zoom.
+            for (let i = 0; i < pinSequence.length - 1; i++) {
+                const p1 = nails[pinSequence[i]];
+                const p2 = nails[pinSequence[i+1]];
+                
+                const x1 = margin + (p1.x * scale);
+                const y1 = margin + (p1.y * scale);
+                const x2 = margin + (p2.x * scale);
+                const y2 = margin + (p2.y * scale);
+                
+                doc.line(x1, y1, x2, y2);
+            }
+            
+            doc.save('string-art.pdf');
+            statusText.innerText = "PDF berhasil diekspor!";
+        }, 100);
+    });
+</script>
+
 </body>
 </html>
